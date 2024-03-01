@@ -1,7 +1,10 @@
+// this class is used to create or update a contract
 @RestResource(urlMapping='/Contract/*')
 global with sharing class ContractAPI {
     @HttpPut
     global static void createOrUpdateContract() {
+        // method to create or update a contract
+        // set the response type to JSON format with parameters/ status / contractId
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
         try {
@@ -19,18 +22,20 @@ global with sharing class ContractAPI {
                 existingContract = null;
             }
             if (existingContract != null) {
-                if (existingContract.Status != 'Activated') {
+                if (existingContract.Status != 'Activated') { // if the contract is not activated, the account can be changed
                     existingContract.AccountId = accountId;
                 }
                 existingContract.Status = status;
                 existingContract.StartDate = startDate;
                 existingContract.ContractTerm = contractTerm;
+                // update the contract
                 update existingContract;
+                // return the contract ID
                 res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
                     'status' => 'success',
                     'contractId' => existingContract.Id
                 }));
-                res.statusCode = 200; // OK
+                res.statusCode = 200; // status OK
             } else {
                 Contract newContract = new Contract(
                     AccountId = accountId,
@@ -38,7 +43,7 @@ global with sharing class ContractAPI {
                     StartDate = startDate,
                     ContractTerm = contractTerm
                 );
-                insert newContract;
+                insert newContract; // create the new contract
                 res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
                     'status' => 'success',
                     'contractId' => newContract.Id
@@ -46,7 +51,7 @@ global with sharing class ContractAPI {
                 res.statusCode = 201; // CREATED
             }
         } catch (DmlException e) {
-            res.statusCode = 409; // plus précis 409 ?
+            res.statusCode = 409; // CONFLICT
             res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
                 'status' => 'error',
                 'message' => e.getMessage()
@@ -60,36 +65,3 @@ global with sharing class ContractAPI {
         }
     }
 }
-// En 2 méthodes (old version)
-//     @HttpPost
-//     global static String createContract(Id accountId, String status, Date startDate, Integer contractTerm) {
-//         // Créez un nouveau contrat avec les détails fournis et retournez son ID
-//         Contract newContract = new Contract(
-//             AccountId = accountId,
-//             Status = status,
-//             StartDate = startDate,
-//             ContractTerm = contractTerm
-//         );
-//         insert newContract;
-//         return newContract.Id;
-//     }
-
-//     @HttpPatch
-//     global static void updateContract(Id contractId, Id accountId, String status, Date startDate, Integer contractTerm) {
-//         Contract existingContract;
-//         try {
-//             existingContract = [SELECT Id, AccountId, Status, StartDate, ContractTerm FROM Contract WHERE Id = :contractId];
-//         } catch (Exception e) {
-//             RestContext.response.statusCode = 404;
-//             RestContext.response.responseBody = Blob.valueOf('Aucun contrat avec cet ID n\'a été trouvé.');
-//             return;
-//         }
-//         if (existingContract.Status != 'Activated') {
-//             existingContract.AccountId = accountId;
-//         }
-//         existingContract.Status = status;
-//         existingContract.StartDate = startDate;
-//         existingContract.ContractTerm = contractTerm;
-//         update existingContract;
-//     }
-// }

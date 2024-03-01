@@ -1,9 +1,44 @@
 @isTest
 private class ContactAPITest {
 
-// test de la méthode createContact
+// Unit tests for the createContact method
+// differents scenarios are tested : new contact, already existing contact, contact without name, exception
+    @isTest static void testCreateNewContact() {
+    // use case : create a new contact with a new email that does not exist in the database
+        // setup test data
+        List<Account> accounts = DataFactory.createAccounts(1);
+        List<Contact> contacts = DataFactory.createContacts(1);
+        Contact testContact = contacts[0]; 
+
+        // setup request and response
+        RestRequest req = new RestRequest();
+        RestResponse res = new RestResponse();
+        req.requestURI = '/services/apexrest/Contact';  
+        req.httpMethod = 'POST';
+        req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'email' => 'newemail@test.com', // Use a new email
+            'name' => 'NewLastName'
+        }));
+        RestContext.request = req;
+        RestContext.response = res;
+
+        // Call createContact method
+        Test.startTest();
+        ContactAPI.createContact();
+        Test.stopTest();
+
+        // Check that the new contact was created
+        Contact newContact = [SELECT Id, LastName FROM Contact WHERE Email = 'newemail@test.com'];
+        System.assertNotEquals(null, newContact);
+        System.assertEquals('NewLastName', newContact.LastName);
+
+        // check that the method returned the ID of the new contact
+        Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+        System.assertEquals(newContact.Id, response.get('id'));
+        }
     @isTest static void testCreateExistingContact() {
-        // Générer des données de test
+    // use case : create a new contact with an email that already exists in the database and update the name
+        // setup test data
         List<Account> accounts = DataFactory.createAccounts(1);
         List<Contact> contacts = DataFactory.createContacts(1);
         Contact testContact = contacts[0]; 
@@ -20,103 +55,77 @@ private class ContactAPITest {
         RestContext.request = req;
         RestContext.response = res;
 
-        // Appeler la méthode createContact
+        // call createContact method
         Test.startTest();
         ContactAPI.createContact();
         Test.stopTest();
 
-        // Vérifier que la méthode a renvoyé l'ID du contact existant
+        // check that the method returned the ID of the existing contact
         Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals(testContact.Id, response.get('id'));
 
-        // Vérifier que le nom du contact a été mis à jour
+        // check that the name of the existing contact was updated
         Contact updatedContact = [SELECT Id, LastName FROM Contact WHERE Id = :testContact.Id];
         System.assertEquals('NewLastName', updatedContact.LastName);
     }
-    @isTest static void testCreateNewContact() {
-        // Générer des données de test
-        List<Account> accounts = DataFactory.createAccounts(1);
-        List<Contact> contacts = DataFactory.createContacts(1);
-        Contact testContact = contacts[0]; 
 
-        // Appeler la méthode createContact avec un nouvel email
+    @isTest static void testCreateContactException() {
+    // use case : create a new contact with a null request body and expect a 500 status code
+        // Set up the request and response
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
-        req.requestURI = '/services/apexrest/Contact';  
-        req.httpMethod = 'POST';
-        req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
-            'email' => 'newemail@test.com', // Utiliser un nouvel email
-            'name' => 'NewLastName'
-        }));
+        req.requestBody = null; // "null" will cause a NullPointerException
         RestContext.request = req;
         RestContext.response = res;
 
+        // Call the method createContact
         Test.startTest();
         ContactAPI.createContact();
         Test.stopTest();
 
-        // Vérifier que la méthode a créé un nouveau contact
-        Contact newContact = [SELECT Id, LastName FROM Contact WHERE Email = 'newemail@test.com'];
-        System.assertNotEquals(null, newContact);
-        System.assertEquals('NewLastName', newContact.LastName);
-
-
-    // Vérifier que la méthode a renvoyé l'ID du nouveau contact
-    Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
-    System.assertEquals(newContact.Id, response.get('id'));
-    }
-
-    @isTest
-    static void testCreateContactException() {
-        // Set up the test data
-        RestRequest req = new RestRequest();
-        RestResponse res = new RestResponse();
-        req.requestBody = null; // This will cause a NullPointerException
-        RestContext.request = req;
-        RestContext.response = res;
-
-        // Call the method
-        Test.startTest();
-        ContactAPI.createContact();
-        Test.stopTest();
-
-        // Check the response
+        // Check the response status code (500) and message must match the expected values
         System.assertEquals(500, res.statusCode);
         Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals('error', response.get('status'));
         System.assertNotEquals(null, response.get('message'));
     }
     @isTest static void testCreateContactWithoutName() {
-        // Générer des données de test
+    // use case : create a new contact without providing a name
+        //setup test data
         List<Account> accounts = DataFactory.createAccounts(5);
         List<Contact> contacts = DataFactory.createContacts(5);
     
-        // Appeler la méthode createContact sans fournir de nom
+        // setup request and response with a null name
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
         req.httpMethod = 'POST';
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
-            'email' => 'newemail@test.com' // Ne pas fournir de nom
+            'email' => 'newemail@test.com' 
+            // no name provided
         }));
         RestContext.request = req;
         RestContext.response = res;
     
+        // Call createContact method
         Test.startTest();
         ContactAPI.createContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé un code de statut 400
+        // check that the method returned a 400 status code
         System.assertEquals(400, res.statusCode);
     }
-// test de la méthode UpdateContact
+
+// unit tests for the updateContact method 
+// differents scenarios are tested : update an existing contact, update a non existing contact, contact not found, DmlException
     @isTest static void testUpdateContact() {
-        // Générer des données de test
+    // use case : update the name of an existing contact
+        // setup test data
         List<Account> accounts = DataFactory.createAccounts(5);
         List<Contact> contacts = DataFactory.createContacts(5);
         Contact testContact = contacts[0]; 
     
-        // Appeler la méthode updateContact
+        // setup request and response
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
@@ -128,25 +137,27 @@ private class ContactAPITest {
         RestContext.request = req;
         RestContext.response = res;
     
+        //call updateContact method
         Test.startTest();
         ContactAPI.updateContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé l'ID du contact existant
+        // Check that the id of the updated contact was returned
         Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals(testContact.Id, response.get('id'));
     
-        // Vérifier que le nom du contact a été mis à jour
+        // Check that the name of the contact was updated
         Contact updatedContact = [SELECT Id, LastName FROM Contact WHERE Id = :testContact.Id];
         System.assertEquals('UpdatedLastName', updatedContact.LastName);
     }
 
     @isTest static void testUpdateNonExistingContact() {
-        // Générer des données de test
+    // use case : update the name of a contact that does not exist in the database
+        // setup test data
         List<Account> accounts = DataFactory.createAccounts(5);
         List<Contact> contacts = DataFactory.createContacts(5);
     
-        // Appeler la méthode updateContact avec un email qui n'existe pas
+        // setup request and response with a non existing email
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
@@ -157,30 +168,33 @@ private class ContactAPITest {
         }));
         RestContext.request = req;
         RestContext.response = res;
-    
+        
+        // Call updateContact method
         Test.startTest();
         ContactAPI.updateContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé un code de statut 404
+        // Check that the method returned a 404 status code
         System.assertEquals(404, res.statusCode);
     }
+
     @isTest
     static void testUpdateContactnotFound() {
-        // Set up the test data
+    // use case : contact not found
+        // setup test data
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestBody = Blob.valueOf('{"id": "invalidId", "name": "Updated"}'); // This will cause a NotFoundException
         RestContext.request = req;
         RestContext.response = res;
     
-        // Call the method
+        // Call the method updateContact
         Test.startTest();
         ContactAPI.updateContact();
         Test.stopTest();
     
-        // Check the response
-        System.assertEquals(404, res.statusCode);
+        // Check the response status code (404) and message must match the expected values
+        System.assertEquals(404, res.statusCode); // 404 Not Found
         Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals('error', response.get('status'));
         System.assertNotEquals(null, response.get('message'));
@@ -188,6 +202,7 @@ private class ContactAPITest {
 
     @isTest
     static void testUpdateContactDmlException() {
+    // use case : DmlException when updating a contact
         // Create a contact
         Contact contact = new Contact(Email = 'test@example.com', LastName = 'Test');
         insert contact;
@@ -204,22 +219,23 @@ private class ContactAPITest {
         ContactAPI.updateContact();
         Test.stopTest();
 
-        // Check the response
-        System.assertEquals(409, res.statusCode);
+        // Check the response, status code (409) and message must match the expected values
+        System.assertEquals(409, res.statusCode); // 409 Conflict
         Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals('error', response.get('status'));
         System.assertNotEquals(null, response.get('message'));
     }
 
-// test de la méthode deactivateContact
-
+// unit tests for the deactivateContact method
+// differents scenarios are tested : deactivate an existing contact, deactivate a non existing contact, deactivate an already disabled contact, deactivate a contact without email, BadRequest
     @isTest static void testDeactivateContact() {
-        // Générer des données de test
+    // use case : deactivate an existing contact
+        // setup test data
         List<Account> accounts = DataFactory.createAccounts(5);
         List<Contact> contacts = DataFactory.createContacts(5);
         Contact testContact = contacts[0]; 
     
-        // Appeler la méthode deactivateContact
+        // setup request and response
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
@@ -227,37 +243,40 @@ private class ContactAPITest {
         req.addParameter('email', testContact.Email);
         RestContext.request = req;
         RestContext.response = res;
-    
+        
+        // Call deactivateContact method
         Test.startTest();
         ContactAPI.deactivateContact();
         Test.stopTest();
         
-        // Vérifier que le contact a été désactivé
+        // check that the contact was deactivated
         Contact deactivatedContact = [SELECT Id, IsDisabled__c FROM Contact WHERE Id = :testContact.Id];
         System.assertEquals(true, deactivatedContact.IsDisabled__c);
         System.assertEquals(200, res.statusCode);
     }
 
     @isTest static void testDeactivateNonExistingContact() {
-        // Appeler la méthode deactivateContact avec un email qui n'existe pas
+        // setup request and response with a non existing email
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
         req.httpMethod = 'DELETE';
-        req.addParameter('email', 'nonexistingemail@test.com'); // Utiliser un email qui n'existe pas
+        req.addParameter('email', 'nonexistingemail@test.com'); // use a non existing email
         RestContext.request = req;
         RestContext.response = res;
     
+        // Call deactivateContact method    
         Test.startTest();
         ContactAPI.deactivateContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé un code de statut 404
-        System.assertEquals(404, res.statusCode);
+        // Check that the method returned a 404 status code
+        System.assertEquals(404, res.statusCode); // 404 Not Found
     }
 
     @isTest
     static void testUpdateContactException() {
+    // use case : update a contact with a null request body 
         // Set up the test data
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
@@ -270,71 +289,78 @@ private class ContactAPITest {
         ContactAPI.updateContact();
         Test.stopTest();
 
-        // Check the response
-        System.assertEquals(500, res.statusCode);
+        // Check the response status code (500) and message must match the expected values
+        System.assertEquals(500, res.statusCode); // 500 Internal Server Error
         Map<String, Object> response = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals('error', response.get('status'));
         System.assertNotEquals(null, response.get('message'));
     }
 
+
     @isTest static void testDeactivateContactWithoutEmail() {
-        // Appeler la méthode deactivateContact sans fournir d'email
+        // use case : deactivate a contact without providing an email
+        // setup request and response without email
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
         req.httpMethod = 'DELETE';
         RestContext.request = req;
         RestContext.response = res;
-    
+        
+        // Call deactivateContact method
         Test.startTest();
         ContactAPI.deactivateContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé un code de statut 400
-        System.assertEquals(400, res.statusCode);
+        // check that the method returned a 400 status code
+        System.assertEquals(400, res.statusCode); // 400 Bad Request
     }
     
 
     @isTest static void testDeactivateAlreadyDisabledContact() {
-        // Générer des données de test
+    // use case : deactivate an already disabled contact
+        // setup test data
         List<Account> accounts = DataFactory.createAccounts(1);
         List<Contact> contacts = DataFactory.createContacts(1);
         Contact testContact = contacts[0]; 
-        testContact.IsDisabled__c = true;
+        testContact.IsDisabled__c = true; // define the contact as disabled
         update testContact;
     
-        // Appeler la méthode deactivateContact avec un contact déjà désactivé
+        // setup request and response
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
         req.httpMethod = 'DELETE';
-        req.addParameter('email', testContact.Email);
+        req.addParameter('email', testContact.Email); // use disabled contact email
         RestContext.request = req;
         RestContext.response = res;
     
+        // Call deactivateContact method
         Test.startTest();
         ContactAPI.deactivateContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé un code de statut 409
-        System.assertEquals(409, res.statusCode);
+        // Check that the method returned a 409 status code
+        System.assertEquals(409, res.statusCode); // 409 Conflict
     }
     @isTest static void testDeactivateContactWithBadRequest() {
-        // Appeler la méthode deactivateContact avec une requête mal formée
+    // use case : deactivate a contact with a bad request
+        // setup request and response with a bad request
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contact';  
         req.httpMethod = 'DELETE';
         req.addHeader('Content-Type', 'application/json');
-        req.requestBody = Blob.valueOf('{"invalid": "json}');
+        req.requestBody = Blob.valueOf('{"invalid": "json}'); // This will cause a BadRequestException
         RestContext.request = req;
         RestContext.response = res;
     
+        // Call deactivateContact method
         Test.startTest();
         ContactAPI.deactivateContact();
         Test.stopTest();
         
-        // Vérifier que la méthode a renvoyé un code de statut 400
+        // Check that the method returned a 400 status code
         System.assertEquals(400, res.statusCode);
     }
 }
