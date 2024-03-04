@@ -119,8 +119,9 @@ global with sharing class ContactAPI {
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
         try {
-            String id = req.params.get('id');
-            if (id == null) {
+            String id = req.requestURI.substring(req.requestURI.lastIndexOf('/')+1);
+            // String id = req.params.get('id');
+            if (String.isBlank(id)){
                 throw new BadRequestException('ID is required');
             }
 

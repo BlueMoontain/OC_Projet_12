@@ -206,7 +206,7 @@ private class ContactAPITest {
         // setup request and response
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
-        req.requestURI = '/services/apexrest/Contact';  
+        req.requestURI = '/services/apexrest/Contact/' + testContact.Id;  
         req.httpMethod = 'DELETE';
         req.addParameter('id', testContact.Id);
         RestContext.request = req;
@@ -227,9 +227,9 @@ private class ContactAPITest {
         // setup request and response with a non existing ID
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
-        req.requestURI = '/services/apexrest/Contact';  
+        req.requestURI = '/services/apexrest/Contact/nonexistinid';  
         req.httpMethod = 'DELETE';
-        req.addParameter('id', 'nonexistinid'); // use a non existing id
+        // req.addParameter('id', 'nonexistinid'); // use a non existing id
         RestContext.request = req;
         RestContext.response = res;
     
@@ -277,7 +277,7 @@ private class ContactAPITest {
         // setup request and response
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
-        req.requestURI = '/services/apexrest/Contact';  
+        req.requestURI = '/services/apexrest/Contact/' + testContact.Id;    
         req.httpMethod = 'DELETE';
         req.addParameter('id', testContact.Id); // use disabled contact email
         RestContext.request = req;
@@ -296,10 +296,10 @@ private class ContactAPITest {
         // setup request and response with a bad request
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
-        req.requestURI = '/services/apexrest/Contact';  
+        req.requestURI = '/services/apexrest/Contact/';  
         req.httpMethod = 'DELETE';
         req.addHeader('Content-Type', 'application/json');
-        req.requestBody = Blob.valueOf('{"invalid": "json}'); // This will cause a BadRequestException
+        // req.requestBody = Blob.valueOf('{"invalid": "json}'); // This will cause a BadRequestException
         RestContext.request = req;
         RestContext.response = res;
     
