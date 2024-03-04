@@ -1,4 +1,5 @@
 @isTest
+// DataFactory class to create test data
 public class DataFactory {
     // Method to create accounts
     public static List<Account> createAccounts(Integer numAccounts) {

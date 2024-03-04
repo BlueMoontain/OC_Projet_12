@@ -17,7 +17,7 @@ private class ContractAPITest {
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contract';  
-        req.httpMethod = 'PUT';
+        req.httpMethod = 'POST'; //POST
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
             'contractId' => nonExistingContractId,
             'accountId' => validAccount.Id,
@@ -29,8 +29,8 @@ private class ContractAPITest {
         RestContext.response = res;
 
         Test.startTest();
-        // Call createOrUpdateContract
-        ContractAPI.createOrUpdateContract();
+        // Call createContract
+        ContractAPI.createContract(); 
         Test.stopTest();
 
         // Check that the HTTP status code is 201
@@ -41,7 +41,34 @@ private class ContractAPITest {
         System.assertEquals('success', responseBody.get('status'));
     }
     
-    @isTest static void testCreateUpdateContract() {
+    @isTest static void testCreateContractWithException() {
+        // use case: create a new contract with invalid data to trigger Exception
+        RestRequest req = new RestRequest();
+        RestResponse res = new RestResponse();
+        req.requestURI = '/services/apexrest/Contract';  
+        req.httpMethod = 'POST'; 
+        req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'accountId' => 'invalid', // invalid accountId will trigger Exception
+            'status' => 'Draft',
+            'startDate' => Date.today(),
+            'contractTerm' => 24
+        }));
+        RestContext.request = req;
+        RestContext.response = res;
+    
+        Test.startTest();
+        ContractAPI.createContract(); 
+        Test.stopTest();
+    
+        // Check that the HTTP status code is 400 
+        System.assertEquals(400, res.statusCode); // 400 BAD REQUEST
+    
+        // Check that the response body contains the correct status and message
+        Map<String, Object> responseBody = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+        System.assertEquals('error', responseBody.get('status'));
+    }
+    
+    @isTest static void testUpdateContract() {
     // use case: update an existing contract
         // set data
         List<Contract> contracts = DataFactory.createContracts(1, 1);
@@ -58,7 +85,7 @@ private class ContractAPITest {
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contract';  
-        req.httpMethod = 'PUT';
+        req.httpMethod = 'PATCH'; //PATCH
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
             'contractId' => testContract.Id,
             'accountId' => newAccount.Id,
@@ -70,9 +97,9 @@ private class ContractAPITest {
         RestContext.request = req;
         RestContext.response = res;
         
-        // Call createOrUpdateContract
+        // Call UpdateContract
         Test.startTest();
-        ContractAPI.createOrUpdateContract();
+        ContractAPI.updateContract();
         Test.stopTest();
     
         // Check that the contract was updated with the correct details
@@ -91,13 +118,13 @@ private class ContractAPITest {
         System.assertEquals(testContract.Id, (Id) responseBody.get('contractId'));
     }
 
-    @isTest static void testCreateUpdateContractWithInvalidData() {
+    @isTest static void testUpdateContractWithInvalidData() {
     // use case: update an existing contract with invalid data
         // Prepare request with invalid data
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contract';  
-        req.httpMethod = 'PUT';
+        req.httpMethod = 'PATCH';
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
             'contractId' => 'invalid',
             'accountId' => 'invalid',
@@ -109,8 +136,8 @@ private class ContractAPITest {
         RestContext.response = res;
     
         Test.startTest();
-        // Call createOrUpdateContract
-        ContractAPI.createOrUpdateContract();
+        // Call UpdateContract
+        ContractAPI.updateContract(); 
         Test.stopTest();
     
         // Check that the HTTP status code is 400
@@ -120,15 +147,15 @@ private class ContractAPITest {
         Map<String, Object> responseBody = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals('error', responseBody.get('status'));
     }
-    @isTest static void testCreateUpdateContractWithDmlException() {
-    // use case: update an existing contract with invalid contractTerm
+    @isTest static void testCreateContractWithDmlException() {
+    // use case: create a contract with invalid contractTerm
         // Use DataFactory to create a list of test accounts
         List<Account> testAccounts = DataFactory.createAccounts(10); 
         // Prepare request with invalid contractTerm to trigger DmlException
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contract';  
-        req.httpMethod = 'PUT';
+        req.httpMethod = 'POST'; 
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
             'contractId' => null,
             'accountId' => testAccounts[0].Id, 
@@ -141,7 +168,7 @@ private class ContractAPITest {
     
         // Call createOrUpdateContract
         Test.startTest();
-        ContractAPI.createOrUpdateContract();
+        ContractAPI.createContract(); 
         Test.stopTest();
     
         // Check that the HTTP status code is 409 
@@ -152,13 +179,13 @@ private class ContractAPITest {
         System.assertEquals('error', responseBody.get('status'));
     }
 
-    @isTest static void testCreateUpdateContractWithException() {
+    @isTest static void testUpdateContractWithException() {
     // use case: update an existing contract with invalid data
         // Prepare request with invalid startDate to trigger Exception
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contract';  
-        req.httpMethod = 'PUT';
+        req.httpMethod = 'PATCH'; 
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
             'contractId' => 'invalid',
             'accountId' => '0015g0000028T0xAAI',
@@ -169,9 +196,9 @@ private class ContractAPITest {
         RestContext.request = req;
         RestContext.response = res;
         
-        // Call createOrUpdateContract method
+        // Call UpdateContract method
         Test.startTest();
-        ContractAPI.createOrUpdateContract();
+        ContractAPI.updateContract(); 
         Test.stopTest();
     
         // Check that the HTTP status code is 400 
@@ -180,5 +207,35 @@ private class ContractAPITest {
         // Check that the response body contains the correct status and message
         Map<String, Object> responseBody = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
         System.assertEquals('error', responseBody.get('status'));
-    }    
+    } 
+    @isTest static void testUpdateContractWithDmlException() {
+        // use case: update an existing contract with invalid contractTerm to trigger DmlException
+        List<Contract> contracts = DataFactory.createContracts(1, 1);
+        Contract testContract = contracts[0];
+    
+        RestRequest req = new RestRequest();
+        RestResponse res = new RestResponse();
+        req.requestURI = '/services/apexrest/Contract';  
+        req.httpMethod = 'PATCH'; 
+        req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'contractId' => testContract.Id,
+            'accountId' => testContract.AccountId,
+            'status' => 'Draft',
+            'startDate' => Date.today(),
+            'contractTerm' => -1 // Invalid contractTerm will trigger DmlException
+        }));
+        RestContext.request = req;
+        RestContext.response = res;
+    
+        Test.startTest();
+        ContractAPI.updateContract(); 
+        Test.stopTest();
+    
+        // Check that the HTTP status code is 409 
+        System.assertEquals(409, res.statusCode); // 409 CONFLICT
+    
+        // Check that the response body contains the correct status and message
+        Map<String, Object> responseBody = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+        System.assertEquals('error', responseBody.get('status'));
+    }   
 }
