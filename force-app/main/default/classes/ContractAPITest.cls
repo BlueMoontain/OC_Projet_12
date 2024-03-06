@@ -1,7 +1,7 @@
 @isTest
 private class ContractAPITest {
-// Unit test for the createOrUpdateContract method
-// Different scenarios are tested for a PUT request: create a new contract, update an existing contract, create (or update an existing contract) with invalid data
+// Unit test for the contract API
+// Different scenarios are tested for a POST and a PATCH request: create a new contract, update an existing contract, create (or update an existing contract) with invalid data
     @isTest static void testCreateNewContract() {
         // use case: create a new contract
         // Create a valid account and contract using DataFactory
@@ -17,7 +17,7 @@ private class ContractAPITest {
         RestRequest req = new RestRequest();
         RestResponse res = new RestResponse();
         req.requestURI = '/services/apexrest/Contract';  
-        req.httpMethod = 'POST'; //POST
+        req.httpMethod = 'POST'; 
         req.requestBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
             'contractId' => nonExistingContractId,
             'accountId' => validAccount.Id,
